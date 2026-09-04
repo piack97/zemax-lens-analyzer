@@ -53,3 +53,15 @@ Run focused checks with:
 run('tests/run_tests.m');
 run_tests;
 ```
+
+## Launching the GUI
+
+```matlab
+repoRoot = pwd; % run from the repository root
+addpath(repoRoot);
+addpath(genpath(fullfile(repoRoot, 'src')));
+app = launchZemaxLensAnalyzer;
+```
+
+Use the **Load .zmx File** button in the app to load a prescription and auto-populate
+surface range, field point, wavelength, and aperture controls from the file.

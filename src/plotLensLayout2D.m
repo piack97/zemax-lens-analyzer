@@ -9,7 +9,18 @@ opts = parseOpts(varargin{:});
 [startIdx, endIdx] = validatedRange(surfaceRange, numel(lensData.surfaces));
 zv = surfaceVertices(lensData.surfaces);
 
-ax = axes(); hold(ax, 'on');
+ax = opts.Axes;
+if isempty(ax)
+    ax = axes();
+else
+    cla(ax);
+end
+hold(ax, 'on');
+
+if opts.ShadeMaterials
+    drawMaterialFills(ax, lensData, zv, startIdx, endIdx, opts.LabelMaterials);
+end
+
 for s = startIdx:endIdx
     surf = lensData.surfaces(s);
     semid = surf.semiDiameter;
@@ -42,6 +53,9 @@ p = inputParser();
 p.addParameter('NumRays', 7, @(x) isnumeric(x) && isscalar(x) && x >= 1);
 p.addParameter('FieldPoints', [], @(x) isnumeric(x) && size(x, 2) == 2);
 p.addParameter('Wavelength', NaN, @(x) isnumeric(x) && isscalar(x));
+p.addParameter('Axes', [], @(x) isempty(x) || isAxesHandle(x));
+p.addParameter('ShadeMaterials', false, @(x) islogical(x) && isscalar(x));
+p.addParameter('LabelMaterials', false, @(x) islogical(x) && isscalar(x));
 p.parse(varargin{:});
 opts = p.Results;
 end
@@ -103,4 +117,66 @@ end
 
 function v = normalizeVec(v)
 v = v ./ norm(v);
+end
+
+function drawMaterialFills(ax, lensData, zv, startIdx, endIdx, labelMaterials)
+surfaces = lensData.surfaces;
+if endIdx - startIdx < 1
+    return;
+end
+
+materialMap = containers.Map('KeyType', 'char', 'ValueType', 'any');
+colorLut = lines(12);
+nextColor = 1;
+
+for s = startIdx:min(endIdx - 1, numel(surfaces) - 1)
+    material = string(surfaces(s).material);
+    if ~isGlassMaterial(material)
+        continue;
+    end
+
+    key = upper(char(strtrim(material)));
+    if ~isKey(materialMap, key)
+        materialMap(key) = colorLut(mod(nextColor - 1, size(colorLut, 1)) + 1, :);
+        nextColor = nextColor + 1;
+    end
+    c = materialMap(key);
+
+    semid = inferElementSemiDiameter(surfaces(s), surfaces(s + 1));
+    y = linspace(-semid, semid, 200);
+    r = abs(y);
+    z1 = zv(s) + conicSag(surfaces(s).curvature, surfaces(s).conic, r);
+    z2 = zv(s + 1) + conicSag(surfaces(s + 1).curvature, surfaces(s + 1).conic, r);
+
+    patch(ax, [z1, fliplr(z2)], [y, fliplr(y)], c, ...
+        'FaceAlpha', 0.2, 'EdgeColor', 'none');
+
+    if labelMaterials
+        zMid = mean([mean(z1), mean(z2)]);
+        text(ax, zMid, 0, key, ...
+            'HorizontalAlignment', 'center', ...
+            'VerticalAlignment', 'middle', ...
+            'Color', c, ...
+            'FontWeight', 'bold');
+    end
+end
+end
+
+function semid = inferElementSemiDiameter(surfA, surfB)
+vals = [surfA.semiDiameter, surfB.semiDiameter];
+vals = vals(isfinite(vals) & vals > 0);
+if isempty(vals)
+    semid = 10;
+else
+    semid = max(vals);
+end
+end
+
+function tf = isGlassMaterial(material)
+m = upper(strtrim(char(material)));
+tf = ~(strcmp(m, 'AIR') || strcmp(m, 'VACUUM') || strcmp(m, ''));
+end
+
+function tf = isAxesHandle(x)
+tf = isa(x, 'matlab.graphics.axis.Axes') || isa(x, 'matlab.ui.control.UIAxes');
 end

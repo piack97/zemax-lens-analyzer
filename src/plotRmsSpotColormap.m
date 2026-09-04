@@ -7,6 +7,8 @@ p.addParameter('FieldRangeX', [], @(x) isnumeric(x) && numel(x) == 2);
 p.addParameter('FieldRangeY', [], @(x) isnumeric(x) && numel(x) == 2);
 p.addParameter('PupilSamples', 13, @(x) isnumeric(x) && isscalar(x) && x > 1);
 p.addParameter('Wavelength', NaN, @(x) isnumeric(x) && isscalar(x));
+p.addParameter('Units', 'RMS', @(x) ischar(x) || isstring(x));
+p.addParameter('Axes', [], @(x) isempty(x) || isAxesHandle(x));
 p.parse(varargin{:});
 opts = p.Results;
 
@@ -24,13 +26,38 @@ for i = 1:numel(FX)
     RMS(i) = spot.rmsRadius;
 end
 
-ax = axes();
-imagesc(ax, fx, fy, RMS);
+units = char(opts.Units);
+if strcmpi(units, 'FWHM')
+    C = rmsSpotToGaussianFWHM(RMS);
+    ttl = 'FWHM Spot Diameter Colormap';
+    cbarLabel = 'FWHM (mm)';
+elseif strcmpi(units, 'RMS')
+    C = RMS;
+    ttl = 'RMS Spot Radius Colormap';
+    cbarLabel = 'RMS Radius (mm)';
+else
+    error('plotRmsSpotColormap:InvalidUnits', 'Units must be ''RMS'' or ''FWHM''.');
+end
+
+ax = opts.Axes;
+if isempty(ax)
+    ax = axes();
+else
+    cla(ax);
+end
+oldCb = getappdata(ax, 'plotRmsSpotColormapColorbar');
+if ~isempty(oldCb) && isgraphics(oldCb)
+    delete(oldCb);
+end
+imagesc(ax, fx, fy, C);
 set(ax, 'YDir', 'normal');
 axis(ax, 'image');
-colorbar(ax);
+cb = colorbar(ax);
+cb.Tag = 'plotRmsSpotColormapColorbar';
+setappdata(ax, 'plotRmsSpotColormapColorbar', cb);
+ylabel(cb, cbarLabel);
 xlabel(ax, 'Field X'); ylabel(ax, 'Field Y');
-title(ax, 'RMS Spot Radius Colormap');
+title(ax, ttl);
 end
 
 function [fxRange, fyRange] = inferFieldRanges(lensData, inX, inY)
@@ -55,4 +82,8 @@ else
         fyRange = [-1, 1];
     end
 end
+end
+
+function tf = isAxesHandle(x)
+tf = isa(x, 'matlab.graphics.axis.Axes') || isa(x, 'matlab.ui.control.UIAxes');
 end
