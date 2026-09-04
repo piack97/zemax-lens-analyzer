@@ -60,6 +60,13 @@ for r = 1:numRays
             reason = sprintf('Ray missed surface %d.', surf.number);
             break;
         end
+        if isfinite(surf.semiDiameter) && surf.semiDiameter > 0
+            if hypot(hitPoint(1), hitPoint(2)) > surf.semiDiameter
+                valid = false;
+                reason = sprintf('Ray vignetted at surface %d.', surf.number);
+                break;
+            end
+        end
 
         nAfter = getMaterialIndex(materials{s}, wavelength, opts.glassModel);
         [refractedDir, refractOk] = refractDirection(dir, normal, nBefore, nAfter);

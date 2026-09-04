@@ -18,8 +18,10 @@ for i = 1:numel(tr.paths)
         dEnd = tr.paths(i).directions(end, :);
         if all(isfinite(pEnd)) && all(isfinite(dEnd)) && abs(dEnd(3)) > 1e-12
             tImage = (zImage - pEnd(3)) / dEnd(3);
-            pImage = pEnd + tImage * dEnd;
-            pts(end + 1, :) = pImage(1:2); %#ok<AGROW>
+            if tImage >= 0
+                pImage = pEnd + tImage * dEnd;
+                pts(end + 1, :) = pImage(1:2); %#ok<AGROW>
+            end
         end
     end
 end

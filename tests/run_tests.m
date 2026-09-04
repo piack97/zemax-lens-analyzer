@@ -5,6 +5,7 @@ addpath(fullfile(repoRoot, 'src'));
 testParseAscii(repoRoot);
 testParseUtf16(repoRoot);
 testTraceAndSpot(repoRoot);
+testInvalidRayHandling(repoRoot);
 testRmsFwhmRoundtrip();
 
 fprintf('All tests passed.\n');
@@ -49,6 +50,21 @@ assert(all(isfinite(tr.paths(1).points(end, :))));
 spot = computeSpotMetrics(lens, [0, 0], 'PupilSamples', 7, 'Wavelength', 0.5876);
 assert(isfinite(spot.rmsRadius));
 assert(size(spot.points, 2) == 2);
+end
+
+function testInvalidRayHandling(repoRoot)
+lens = parseZmxFile(fullfile(repoRoot, 'tests', 'data', 'sample_lens.zmx'));
+rays(1).origin = [20, 0, -1];
+rays(1).direction = [0, 0, 1];
+tr = traceSequentialRays(lens, rays, 'Wavelength', 0.5876);
+assert(~tr.paths(1).valid);
+assert(contains(tr.paths(1).failureReason, 'vignetted'));
+
+spot = computeSpotMetrics(lens, [0, 0], 'PupilSamples', 9, 'Wavelength', 0.5876);
+u = linspace(-1, 1, 9);
+[X, Y] = meshgrid(u, u);
+totalPupilSamples = nnz((X.^2 + Y.^2) <= 1);
+assert(size(spot.points, 1) < totalPupilSamples);
 end
 
 function testRmsFwhmRoundtrip()
