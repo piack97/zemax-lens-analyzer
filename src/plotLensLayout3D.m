@@ -9,8 +9,15 @@ opts = parseOpts(varargin{:});
 [startIdx, endIdx] = validatedRange(surfaceRange, numel(lensData.surfaces));
 zv = surfaceVertices(lensData.surfaces);
 
-ax = axes(); hold(ax, 'on');
+ax = opts.Axes;
+if isempty(ax)
+    ax = axes();
+else
+    cla(ax);
+end
+hold(ax, 'on');
 view(ax, 3);
+materialColors = buildMaterialColors(lensData.surfaces);
 for s = startIdx:endIdx
     surfaceDef = lensData.surfaces(s);
     semid = surfaceDef.semiDiameter;
@@ -23,7 +30,13 @@ for s = startIdx:endIdx
     X = R .* cos(T);
     Y = R .* sin(T);
     Z = zv(s) + conicSag(surfaceDef.curvature, surfaceDef.conic, R);
-    surf(ax, Z, X, Y, 'FaceAlpha', 0.15, 'EdgeColor', 'none', 'FaceColor', [0.3, 0.5, 0.85]);
+    matKey = upper(strtrim(surfaceDef.material));
+    if isKey(materialColors, matKey)
+        fc = materialColors(matKey);
+    else
+        fc = [0.3, 0.5, 0.85];
+    end
+    surf(ax, Z, X, Y, 'FaceAlpha', 0.25, 'EdgeColor', 'none', 'FaceColor', fc);
 end
 
 rays = generateRays(lensData, opts.NumRays, opts.FieldPoints);
@@ -46,6 +59,7 @@ p = inputParser();
 p.addParameter('NumRays', 24, @(x) isnumeric(x) && isscalar(x) && x >= 1);
 p.addParameter('FieldPoints', [], @(x) isnumeric(x) && size(x, 2) == 2);
 p.addParameter('Wavelength', NaN, @(x) isnumeric(x) && isscalar(x));
+p.addParameter('Axes', [], @(x) isempty(x) || isAxesHandle(x));
 p.parse(varargin{:});
 opts = p.Results;
 end
@@ -116,4 +130,26 @@ end
 
 function v = normalizeVec(v)
 v = v ./ norm(v);
+end
+
+function cmap = buildMaterialColors(surfaces)
+cmap = containers.Map('KeyType', 'char', 'ValueType', 'any');
+colors = lines(12);
+next = 1;
+for i = 1:numel(surfaces)
+    m = upper(strtrim(surfaces(i).material));
+    if strcmp(m, 'AIR') || strcmp(m, 'VACUUM') || strcmp(m, '')
+        c = [0.85, 0.85, 0.9];
+    else
+        c = colors(mod(next - 1, size(colors, 1)) + 1, :);
+        next = next + 1;
+    end
+    if ~isKey(cmap, m)
+        cmap(m) = c;
+    end
+end
+end
+
+function tf = isAxesHandle(x)
+tf = isa(x, 'matlab.graphics.axis.Axes') || isa(x, 'matlab.ui.control.UIAxes');
 end

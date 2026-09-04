@@ -18,6 +18,7 @@ p.addParameter('PupilSamples', 17, @(x) isnumeric(x) && isscalar(x) && x > 1);
 p.addParameter('Wavelength', NaN, @(x) isnumeric(x) && isscalar(x));
 p.addParameter('ShowAiryDisk', false, @(x) islogical(x) && isscalar(x));
 p.addParameter('AiryRadius', NaN, @(x) isnumeric(x) && isscalar(x));
+p.addParameter('Axes', [], @(x) isempty(x) || all(isAxesHandle(x)));
 p.parse(varargin{:});
 opts = p.Results;
 
@@ -25,9 +26,28 @@ nFields = size(fieldPoint, 1);
 gridCols = ceil(sqrt(nFields));
 gridRows = ceil(nFields / gridCols);
 axs = gobjects(nFields, 1);
+if isempty(opts.Axes)
+    targetAxes = gobjects(0);
+else
+    targetAxes = opts.Axes(:);
+    if ~(numel(targetAxes) == 1 || numel(targetAxes) == nFields)
+        error('plotSpotDiagram:InvalidAxesCount', 'Provide either 1 axes handle or one per field point.');
+    end
+    if numel(targetAxes) == 1 && nFields > 1
+        error('plotSpotDiagram:InvalidAxesCount', ...
+            'A single axes handle can only be used for one field point.');
+    end
+end
 
 for i = 1:nFields
-    axs(i) = subplot(gridRows, gridCols, i);
+    if isempty(targetAxes)
+        axs(i) = subplot(gridRows, gridCols, i);
+    elseif numel(targetAxes) == 1
+        axs(i) = targetAxes(1);
+    else
+        axs(i) = targetAxes(i);
+    end
+    cla(axs(i));
     hold(axs(i), 'on');
 
     spot = computeSpotMetrics(lensData, fieldPoint(i, :), 'PupilSamples', opts.PupilSamples, 'Wavelength', opts.Wavelength);
@@ -54,4 +74,8 @@ for i = 1:nFields
             'Units', 'normalized', 'HorizontalAlignment', 'left', 'VerticalAlignment', 'top');
     end
 end
+end
+
+function tf = isAxesHandle(x)
+tf = isa(x, 'matlab.graphics.axis.Axes') || isa(x, 'matlab.ui.control.UIAxes');
 end
