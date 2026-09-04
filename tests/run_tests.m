@@ -109,13 +109,31 @@ assert(axOut2 == ax2);
 
 ax3 = subplot(2, 2, 3, 'Parent', fig);
 plotSpotDiagram(lens, [0, 0], 'Axes', ax3, 'PupilSamples', 7);
+didThrow = false;
+try
+    plotSpotDiagram(lens, [0, 0; 5, 0], 'Axes', ax3, 'PupilSamples', 7);
+catch ME
+    didThrow = strcmp(ME.identifier, 'plotSpotDiagram:InvalidAxesCount');
+end
+assert(didThrow);
 
 ax4 = subplot(2, 2, 4, 'Parent', fig);
 axOut4 = plotRmsSpotColormap(lens, 'Axes', ax4, 'GridSize', [3 3], 'Units', 'FWHM', 'PupilSamples', 7);
 assert(axOut4 == ax4);
+plotRmsSpotColormap(lens, 'Axes', ax4, 'GridSize', [3 3], 'Units', 'RMS', 'PupilSamples', 7);
 images = findobj(ax4, 'Type', 'image');
 assert(~isempty(images));
 assert(all(isfinite(images(1).CData(:))));
+cbs = findall(fig, 'Type', 'ColorBar', 'Tag', 'plotRmsSpotColormapColorbar');
+assert(numel(cbs) == 1);
+
+didThrowUnits = false;
+try
+    plotRmsSpotColormap(lens, 'Axes', ax4, 'Units', 'NOT_A_UNIT', 'PupilSamples', 5);
+catch ME
+    didThrowUnits = strcmp(ME.identifier, 'plotRmsSpotColormap:InvalidUnits');
+end
+assert(didThrowUnits);
 end
 
 function cleanupTempFile(path)

@@ -20,6 +20,8 @@ classdef ZemaxLensAnalyzerApp < handle
         ColormapAxes matlab.ui.control.UIAxes
         UnitsDropdown matlab.ui.control.DropDown
         ColormapPlotButton matlab.ui.control.Button
+        Layout3DFigure matlab.ui.Figure
+        Layout3DAxes matlab.ui.control.UIAxes
 
         LensData = []
         FieldPoints = zeros(0, 2)
@@ -32,8 +34,11 @@ classdef ZemaxLensAnalyzerApp < handle
         end
 
         function delete(app)
-            if ~isempty(app.UIFigure) && isvalid(app.UIFigure)
+            if ~isempty(app.UIFigure) && isvalid(app.UIFigure) && strcmp(app.UIFigure.BeingDeleted, 'off')
                 delete(app.UIFigure);
+            end
+            if ~isempty(app.Layout3DFigure) && isvalid(app.Layout3DFigure) && strcmp(app.Layout3DFigure.BeingDeleted, 'off')
+                delete(app.Layout3DFigure);
             end
         end
     end
@@ -74,7 +79,7 @@ classdef ZemaxLensAnalyzerApp < handle
             lbl.Layout.Row = 2;
             lbl.Layout.Column = 1;
             app.FieldDropdown = uidropdown(top, 'Items', {'[0, 0]'}, 'ItemsData', 1, 'Value', 1, ...
-                'ValueChangedFcn', @(~, ~) app.refreshAllPlots());
+                'ValueChangedFcn', @(~, ~) app.refreshFieldDependentPlots());
             app.FieldDropdown.Layout.Row = 2;
             app.FieldDropdown.Layout.Column = [2 3];
 
@@ -147,7 +152,9 @@ classdef ZemaxLensAnalyzerApp < handle
         end
 
         function loadZmxFile(app)
-            [fileName, folderPath] = uigetfile({'*.zmx', 'Zemax Lens Files (*.zmx)'; '*.*', 'All Files'});
+            [fileName, folderPath] = uigetfile( ...
+                {'*.zmx', 'Zemax Lens Files (*.zmx)'; '*.*', 'All Files'}, ...
+                'Select Zemax Lens File');
             if isequal(fileName, 0)
                 return;
             end
@@ -217,6 +224,11 @@ classdef ZemaxLensAnalyzerApp < handle
             app.refreshColormap();
         end
 
+        function refreshFieldDependentPlots(app)
+            app.refreshLayout();
+            app.refreshSpotDiagram();
+        end
+
         function refreshLayout(app)
             if isempty(app.LensData)
                 return;
@@ -237,14 +249,24 @@ classdef ZemaxLensAnalyzerApp < handle
             if isempty(app.LensData)
                 return;
             end
+            fig = app.Layout3DFigure;
+            ax = app.Layout3DAxes;
             try
-                fig = figure('Name', '3D Lens Layout');
-                ax = axes('Parent', fig);
+                if isempty(fig) || ~isvalid(fig) || isempty(ax) || ~isvalid(ax)
+                    fig = uifigure('Name', '3D Lens Layout', 'Position', [150 150 900 650]);
+                    gl = uigridlayout(fig, [1 1]);
+                    ax = uiaxes(gl);
+                    app.Layout3DFigure = fig;
+                    app.Layout3DAxes = ax;
+                end
                 plotLensLayout3D(app.LensData, app.currentSurfaceRange(), ...
                     'Axes', ax, ...
                     'FieldPoints', app.currentFieldPoint(), ...
                     'Wavelength', app.currentWavelength());
             catch ME
+                if ~isempty(fig) && isgraphics(fig)
+                    delete(fig);
+                end
                 uialert(app.UIFigure, sprintf('Failed to plot 3D layout:\n%s', ME.message), 'Plot Error');
             end
         end
@@ -269,13 +291,15 @@ classdef ZemaxLensAnalyzerApp < handle
             try
                 fx = app.FieldPoints(:, 1);
                 fy = app.FieldPoints(:, 2);
+                fxRange = nonDegenerateRange([min(fx), max(fx)]);
+                fyRange = nonDegenerateRange([min(fy), max(fy)]);
                 plotRmsSpotColormap(app.LensData, ...
                     'Axes', app.ColormapAxes, ...
                     'Units', app.UnitsDropdown.Value, ...
                     'Wavelength', app.currentWavelength(), ...
                     'GridSize', [max(2, numel(unique(fx))), max(2, numel(unique(fy)))], ...
-                    'FieldRangeX', [min(fx), max(fx)], ...
-                    'FieldRangeY', [min(fy), max(fy)]);
+                    'FieldRangeX', fxRange, ...
+                    'FieldRangeY', fyRange);
             catch ME
                 uialert(app.UIFigure, sprintf('Failed to plot colormap:\n%s', ME.message), 'Plot Error');
             end
@@ -284,7 +308,7 @@ classdef ZemaxLensAnalyzerApp < handle
         function range = currentSurfaceRange(app)
             s0 = round(app.SurfaceStartSpinner.Value);
             s1 = round(app.SurfaceEndSpinner.Value);
-            range = [s0, s1];
+            range = [min(s0, s1), max(s0, s1)];
         end
 
         function fp = currentFieldPoint(app)
@@ -296,4 +320,12 @@ classdef ZemaxLensAnalyzerApp < handle
             w = app.WavelengthDropdown.Value;
         end
     end
+end
+
+function r = nonDegenerateRange(r)
+scale = max(1, max(abs(r)));
+if abs(r(2) - r(1)) < 1e-9 * scale
+    pad = max(1, 0.1 * max(1, abs(r(1))));
+    r = [r(1) - pad, r(2) + pad];
+end
 end

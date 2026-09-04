@@ -168,7 +168,7 @@ vals = vals(isfinite(vals) & vals > 0);
 if isempty(vals)
     semid = 10;
 else
-    semid = min(vals);
+    semid = max(vals);
 end
 end
 

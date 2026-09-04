@@ -57,7 +57,9 @@ run_tests;
 ## Launching the GUI
 
 ```matlab
-addpath(genpath('src'));
+repoRoot = pwd; % run from the repository root
+addpath(repoRoot);
+addpath(genpath(fullfile(repoRoot, 'src')));
 app = launchZemaxLensAnalyzer;
 ```
 

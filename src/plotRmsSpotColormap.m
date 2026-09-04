@@ -45,10 +45,16 @@ if isempty(ax)
 else
     cla(ax);
 end
+oldCb = getappdata(ax, 'plotRmsSpotColormapColorbar');
+if ~isempty(oldCb) && isgraphics(oldCb)
+    delete(oldCb);
+end
 imagesc(ax, fx, fy, C);
 set(ax, 'YDir', 'normal');
 axis(ax, 'image');
 cb = colorbar(ax);
+cb.Tag = 'plotRmsSpotColormapColorbar';
+setappdata(ax, 'plotRmsSpotColormapColorbar', cb);
 ylabel(cb, cbarLabel);
 xlabel(ax, 'Field X'); ylabel(ax, 'Field Y');
 title(ax, ttl);

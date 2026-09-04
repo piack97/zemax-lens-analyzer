@@ -138,13 +138,13 @@ colors = lines(12);
 next = 1;
 for i = 1:numel(surfaces)
     m = upper(strtrim(surfaces(i).material));
-    if strcmp(m, 'AIR') || strcmp(m, 'VACUUM') || strcmp(m, '')
-        c = [0.85, 0.85, 0.9];
-    else
-        c = colors(mod(next - 1, size(colors, 1)) + 1, :);
-        next = next + 1;
-    end
     if ~isKey(cmap, m)
+        if strcmp(m, 'AIR') || strcmp(m, 'VACUUM') || strcmp(m, '')
+            c = [0.85, 0.85, 0.9];
+        else
+            c = colors(mod(next - 1, size(colors, 1)) + 1, :);
+            next = next + 1;
+        end
         cmap(m) = c;
     end
 end
