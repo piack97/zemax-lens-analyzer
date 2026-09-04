@@ -27,6 +27,7 @@ ascii = fileread(src);
 bytes = unicode2native(ascii, 'UTF-16LE');
 fid = fopen(dst, 'w');
 assert(fid > 0);
+cleanup = onCleanup(@() cleanupTempFile(dst)); %#ok<NASGU>
 fwrite(fid, uint8([255 254]), 'uint8'); % BOM
 fwrite(fid, bytes, 'uint8');
 fclose(fid);
@@ -35,9 +36,6 @@ lens = parseZmxFile(dst);
 assert(numel(lens.surfaces) == 3);
 assert(abs(lens.system.entrancePupilDiameter - 20) < 1e-12);
 
-if isfile(dst)
-    delete(dst);
-end
 end
 
 function testTraceAndSpot(repoRoot)
@@ -58,4 +56,10 @@ rms0 = 12.34;
 fwhm = rmsSpotToGaussianFWHM(rms0);
 rms1 = gaussianFWHMToRmsSpot(fwhm);
 assert(abs(rms1 - rms0) < 1e-12);
+end
+
+function cleanupTempFile(path)
+if isfile(path)
+    delete(path);
+end
 end

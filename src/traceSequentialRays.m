@@ -116,7 +116,11 @@ if abs(c) < 1e-12
 end
 
 % Newton solve for conic/spherical sag intersection in local coordinates.
-t = max((zVertex - pos(3)) / max(dir(3), 1e-6), 1e-6);
+den = dir(3);
+if abs(den) < 1e-6
+    den = signOrOne(den) * 1e-6;
+end
+t = max((zVertex - pos(3)) / den, 1e-6);
 for it = 1:30
     p = pos + t * dir;
     x = p(1);
@@ -238,5 +242,13 @@ if nrm < eps
     v = [0, 0, 1];
 else
     v = v ./ nrm;
+end
+end
+
+function s = signOrOne(x)
+if x < 0
+    s = -1;
+else
+    s = 1;
 end
 end

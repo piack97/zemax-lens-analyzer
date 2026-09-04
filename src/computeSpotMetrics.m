@@ -9,13 +9,17 @@ opts = p.Results;
 
 rays = samplePupilRays(lensData, fieldPoint, opts.PupilSamples);
 tr = traceSequentialRays(lensData, rays, 'Wavelength', opts.Wavelength);
+zImage = inferImagePlaneZ(lensData, tr);
 
 pts = [];
 for i = 1:numel(tr.paths)
     if tr.paths(i).valid
         pEnd = tr.paths(i).points(end, :);
-        if all(isfinite(pEnd))
-            pts(end + 1, :) = pEnd(1:2); %#ok<AGROW>
+        dEnd = tr.paths(i).directions(end, :);
+        if all(isfinite(pEnd)) && all(isfinite(dEnd)) && abs(dEnd(3)) > 1e-12
+            tImage = (zImage - pEnd(3)) / dEnd(3);
+            pImage = pEnd + tImage * dEnd;
+            pts(end + 1, :) = pImage(1:2); %#ok<AGROW>
         end
     end
 end
@@ -54,4 +58,16 @@ end
 
 function v = normalizeVec(v)
 v = v ./ norm(v);
+end
+
+function zImage = inferImagePlaneZ(lensData, tr)
+if isfield(lensData, 'system') && isfield(lensData.system, 'imageSurfaceIndex') && ~isnan(lensData.system.imageSurfaceIndex)
+    imageNum = lensData.system.imageSurfaceIndex;
+    idx = find([lensData.surfaces.number] == imageNum, 1, 'first');
+    if ~isempty(idx) && idx < numel(lensData.surfaces)
+        zImage = tr.surfaceZ(idx);
+        return;
+    end
+end
+zImage = tr.surfaceZ(end) + lensData.surfaces(end).thickness;
 end

@@ -72,7 +72,10 @@ for i = 1:numel(lines)
 
         case "DIAM"
             if currentSurfaceIdx > 0
-                lensData.surfaces(currentSurfaceIdx).semiDiameter = firstNumeric(args, lensData.surfaces(currentSurfaceIdx).semiDiameter);
+                diam = firstNumeric(args, NaN);
+                if ~isnan(diam)
+                    lensData.surfaces(currentSurfaceIdx).semiDiameter = diam / 2;
+                end
             end
 
         case "CONI"
