@@ -4,6 +4,7 @@ addpath(fullfile(repoRoot, 'src'));
 
 testParseAscii(repoRoot);
 testParseUtf16(repoRoot);
+testParseUtf16Be(repoRoot);
 testTraceAndSpot(repoRoot);
 testInvalidRayHandling(repoRoot);
 testRmsFwhmRoundtrip();
@@ -37,6 +38,24 @@ lens = parseZmxFile(dst);
 assert(numel(lens.surfaces) == 3);
 assert(abs(lens.system.entrancePupilDiameter - 20) < 1e-12);
 
+end
+
+function testParseUtf16Be(repoRoot)
+src = fullfile(repoRoot, 'tests', 'data', 'sample_lens.zmx');
+dst = fullfile(repoRoot, 'tests', 'data', 'sample_lens_utf16be.zmx');
+
+ascii = fileread(src);
+bytes = unicode2native(ascii, 'UTF-16BE');
+fid = fopen(dst, 'w');
+assert(fid > 0);
+cleanup = onCleanup(@() cleanupTempFile(dst)); %#ok<NASGU>
+fwrite(fid, uint8([254 255]), 'uint8'); % BOM
+fwrite(fid, bytes, 'uint8');
+fclose(fid);
+
+lens = parseZmxFile(dst);
+assert(numel(lens.surfaces) == 3);
+assert(abs(lens.system.entrancePupilDiameter - 20) < 1e-12);
 end
 
 function testTraceAndSpot(repoRoot)

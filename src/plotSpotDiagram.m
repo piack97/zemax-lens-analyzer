@@ -31,8 +31,13 @@ for i = 1:nFields
     hold(axs(i), 'on');
 
     spot = computeSpotMetrics(lensData, fieldPoint(i, :), 'PupilSamples', opts.PupilSamples, 'Wavelength', opts.Wavelength);
-    scatter(axs(i), spot.points(:, 1), spot.points(:, 2), 12, 'filled', 'MarkerFaceAlpha', 0.45);
-    plot(axs(i), spot.centroid(1), spot.centroid(2), 'kx', 'MarkerSize', 8, 'LineWidth', 1.2);
+    if ~isempty(spot.points)
+        scatter(axs(i), spot.points(:, 1), spot.points(:, 2), 12, 'filled', 'MarkerFaceAlpha', 0.45);
+        plot(axs(i), spot.centroid(1), spot.centroid(2), 'kx', 'MarkerSize', 8, 'LineWidth', 1.2);
+    else
+        text(axs(i), 0.5, 0.5, 'No valid rays', 'Units', 'normalized', ...
+            'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle');
+    end
 
     if opts.ShowAiryDisk && isfinite(opts.AiryRadius) && opts.AiryRadius > 0
         th = linspace(0, 2 * pi, 200);
@@ -44,7 +49,9 @@ for i = 1:nFields
     xlabel(axs(i), 'x (mm)'); ylabel(axs(i), 'y (mm)');
     axis(axs(i), 'equal'); grid(axs(i), 'on');
 
-    text(axs(i), 0.02, 0.98, sprintf('Centroid: (%.4g, %.4g)', spot.centroid(1), spot.centroid(2)), ...
-        'Units', 'normalized', 'HorizontalAlignment', 'left', 'VerticalAlignment', 'top');
+    if all(isfinite(spot.centroid))
+        text(axs(i), 0.02, 0.98, sprintf('Centroid: (%.4g, %.4g)', spot.centroid(1), spot.centroid(2)), ...
+            'Units', 'normalized', 'HorizontalAlignment', 'left', 'VerticalAlignment', 'top');
+    end
 end
 end

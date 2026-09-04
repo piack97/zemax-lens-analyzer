@@ -29,7 +29,7 @@ for i = 1:numel(tr.paths)
     valid = all(isfinite(p), 2);
     p = p(valid, :);
     if size(p, 1) > 1
-        plot(ax, p(:, 3), p(:, 2), '-', 'Color', [0.85, 0.2, 0.2, 0.65]);
+        plot(ax, p(:, 3), p(:, 2), '-', 'Color', [0.85, 0.2, 0.2]);
     end
 end
 
