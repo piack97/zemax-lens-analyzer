@@ -12,8 +12,8 @@ zv = surfaceVertices(lensData.surfaces);
 ax = axes(); hold(ax, 'on');
 view(ax, 3);
 for s = startIdx:endIdx
-    surf = lensData.surfaces(s);
-    semid = surf.semiDiameter;
+    surfaceDef = lensData.surfaces(s);
+    semid = surfaceDef.semiDiameter;
     if isnan(semid) || semid <= 0
         semid = 10;
     end
@@ -22,7 +22,7 @@ for s = startIdx:endIdx
     [R, T] = meshgrid(rho, th);
     X = R .* cos(T);
     Y = R .* sin(T);
-    Z = zv(s) + conicSag(surf.curvature, surf.conic, R);
+    Z = zv(s) + conicSag(surfaceDef.curvature, surfaceDef.conic, R);
     surf(ax, Z, X, Y, 'FaceAlpha', 0.15, 'EdgeColor', 'none', 'FaceColor', [0.3, 0.5, 0.85]);
 end
 

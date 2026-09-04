@@ -64,8 +64,8 @@ function zImage = inferImagePlaneZ(lensData, tr)
 if isfield(lensData, 'system') && isfield(lensData.system, 'imageSurfaceIndex') && ~isnan(lensData.system.imageSurfaceIndex)
     imageNum = lensData.system.imageSurfaceIndex;
     idx = find([lensData.surfaces.number] == imageNum, 1, 'first');
-    if ~isempty(idx) && idx < numel(lensData.surfaces)
-        zImage = tr.surfaceZ(idx);
+    if ~isempty(idx)
+        zImage = tr.surfaceZ(idx) + lensData.surfaces(idx).thickness;
         return;
     end
 end
